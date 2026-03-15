@@ -1,6 +1,5 @@
-import { HIDDEN_API_KEY } from "./config.js";
+const API_KEY = 'c009986375042531c2463d2196a01d2e';
 
-const API_KEY = HIDDEN_API_KEY;
 const BASE_WEATHER_URL = 'https://api.openweathermap.org/data/2.5/weather?';
 const BASE_FORECAST_URL = 'https://api.openweathermap.org/data/2.5/forecast?'
 
@@ -225,29 +224,39 @@ function getForecastdata(data){
 }   
 
 // Format timestamp to readable time
-function formatTime(timestamp) {
-    return new Date(timestamp * 1000).toLocaleTimeString('en', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-    })
+function formatTime(timestamp, timezone) {
+    const localTimestamp = (timestamp + timezone) * 1000
+    const date = new Date(localTimestamp)
+    let hours = date.getUTCHours()
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    hours = hours % 12 || 12
+    return `${hours}:${minutes} ${ampm}`
 }
 
 //sun position
 function getSunPosition(sunrise, sunset, timezone) {
-    const now = (Date.now() / 1000) + timezone - (new Date().getTimezoneOffset() * 60)
+    const now = Date.now() / 1000
     
-    if (now < sunrise) return 0
-    if (now > sunset) return 100
+    if (now < sunrise) return -1
+    if (now > sunset) return 101
     return ((now - sunrise) / (sunset - sunrise)) * 100
 }
 
 //position sun on arc
 function updateSolarCycle(data) {
-    document.getElementById('sunrise-time').textContent = formatTime(data.sys.sunrise)
-    document.getElementById('sunset-time').textContent = formatTime(data.sys.sunset)
+    document.getElementById('sunrise-time').textContent = formatTime(data.sys.sunrise, data.timezone)
+    document.getElementById('sunset-time').textContent = formatTime(data.sys.sunset, data.timezone)
     
     const percentage = getSunPosition(data.sys.sunrise, data.sys.sunset, data.timezone)
+    const sunIcon = document.getElementById('solar-sun-position')
+    
+    if (percentage < 0 || percentage > 100) {
+        sunIcon.style.opacity = '0'
+        return
+    }
+    
+    sunIcon.style.opacity = '1'
     const angle = 180 - (percentage * 1.8)
     const radians = angle * (Math.PI / 180)
     const radius = 90
@@ -255,7 +264,6 @@ function updateSolarCycle(data) {
     const x = radius * Math.cos(radians)
     const y = radius * Math.sin(radians)
     
-    const sunIcon = document.getElementById('solar-sun-position')
     sunIcon.style.left = `calc(50% + ${x}px)`
     sunIcon.style.bottom = `${y + 40}px`
 }
@@ -362,7 +370,7 @@ function renderHistory(){
                     <div class="sidebar-item" data-city="${item.name}">
                         <div class="sidebar-item-top">
                             <span class="sidebar-item-city">${item.name}</span>
-                            <span class="sidebar-item-temp">${item.main.temp}°C</span>
+                            <span class="sidebar-item-temp">${Math.round(item.main.temp)}°C</span>
                         </div>
                         <div class="sidebar-item-bottom">
                             <span>${item.weather[0].description}</span>
@@ -423,8 +431,3 @@ document.getElementById('retry-btn').addEventListener('click', () => {
     landingPage.classList.remove('hidden')
     navSearchBar.classList.add('hidden')
 })
-
-
-
-
-
