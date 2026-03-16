@@ -3,24 +3,21 @@ const API_KEY = 'c009986375042531c2463d2196a01d2e';
 const BASE_WEATHER_URL = 'https://api.openweathermap.org/data/2.5/weather?';
 const BASE_FORECAST_URL = 'https://api.openweathermap.org/data/2.5/forecast?'
 
-//navbar
 let toggleMainTheme = document.getElementById('theme-toggle-main')
 let navSearchBar = document.querySelector('.nav-search-bar')
 let navSearchInput = document.getElementById('nav-search-input')
 let navLocationBtn = document.getElementById('nav-location-btn')
-//landing-page
+
 let landingInput = document.getElementById('landing-search-input')
 let landingExploreBtn = document.getElementById('landing-explore-btn')
 let landingPage = document.getElementById('page-landing')
 let mainPage = document.getElementById('page-main')
 let landingLocationBtn = document.getElementById('landing-location-btn')
 
-//Main-page-Content
 let cityName = document.getElementById('city-name')
 let currentTemp = document.getElementById('current-temp')
 let currentDesc = document.getElementById('current-desc')
 
-//cards-Grid 
 let humidity = document.getElementById('card-humidity')
 let humidityExtra = document.getElementById('card-humidity-extra')
 let wind = document.getElementById('card-wind')
@@ -34,16 +31,12 @@ let pressureExtra = document.getElementById('card-pressure-extra')
 let feelsLike = document.getElementById('card-feelslike')
 let feelsLikeExtra = document.getElementById('card-feelslike-extra')
 
-//all cards
 let allCard = document.querySelectorAll('.card-animate')
-const forecastContainer = document.getElementById('forecast-container') //Forecast-container
+const forecastContainer = document.getElementById('forecast-container')
 
-//sidebar
 const historyList = document.getElementById('history-list')
 const clearHistoryBtn = document.getElementById('clear-history-btn')
 
-
-//Error-page 
 const errorPage = document.getElementById('page-error')
 const errorMsg = document.getElementById('error-message')
 const loadingOverlay = document.getElementById('loading-overlay')
@@ -52,8 +45,6 @@ let inputStr = ''
 let extraInfo
 let historyArr = []
 
-
-//API-fetch
 async function getWeatherApi(city) {
     try {
         const response = await fetch(`${BASE_WEATHER_URL}q=${city}&appid=${API_KEY}&units=metric`)
@@ -65,7 +56,7 @@ async function getWeatherApi(city) {
             updateSolarCycle(data)
             saveToHistory(data)
         }else{
-            errorMsg.textContent = data.message
+            errorMsg.textContent = data.message || 'City not found'
             errorPage.classList.remove('hidden')
             mainPage.classList.add('hidden')
         }
@@ -82,7 +73,7 @@ async function getForecastApi(city) {
         if(data.cod === '200'){
             getForecastdata(data)
         }else{
-            errorMsg.textContent = data.message
+            errorMsg.textContent = data.message || 'City not found'
             errorPage.classList.remove('hidden')
             mainPage.classList.add('hidden')
         }
@@ -92,59 +83,53 @@ async function getForecastApi(city) {
     }
 }
 
-//landing page
-
 landingInput.addEventListener('input', () => {
     inputStr = landingInput.value
 })
 landingExploreBtn.addEventListener('click', async () => {
-    if(inputStr.trim() === '') return
-    landingInput.value = ''
-    loadingOverlay.classList.remove('hidden')
-
-    landingPage.classList.add('hidden')
-    mainPage.classList.remove('hidden')
-    navSearchBar.classList.remove('hidden')
-
-    await getWeatherApi(inputStr)
-    await getForecastApi(inputStr)
-
-    loadingOverlay.classList.add('hidden')
-})
-document.addEventListener('keydown', async (e) => {
-    if(e.key === 'Enter' && inputStr.trim()){
-        loadingOverlay.classList.remove('hidden')
+    inputStr = landingInput.value.trim()
+    if(inputStr === '') return
+    
+    try {
         landingInput.value = ''
+        loadingOverlay.classList.remove('hidden')
+
         landingPage.classList.add('hidden')
         mainPage.classList.remove('hidden')
         navSearchBar.classList.remove('hidden')
 
         await getWeatherApi(inputStr)
         await getForecastApi(inputStr)
-
+    } finally {
         loadingOverlay.classList.add('hidden')
     }
 })
+landingInput.addEventListener('keydown', async (e) => {
+    if(e.key === 'Enter') {
+        landingExploreBtn.click()
+    }
+})
 
-
-
-//Main-page
 navSearchInput.addEventListener('input', () => {
     inputStr = navSearchInput.value
 })
 navSearchBar.addEventListener('keypress', async (e) => {
     if (e.key === 'Enter'){
-        loadingOverlay.classList.remove('hidden')
+        inputStr = navSearchInput.value.trim()
+        if(inputStr === '') return
+        
+        try {
+            loadingOverlay.classList.remove('hidden')
 
-        navSearchInput.value = ''
-        landingInput.value = ''
-        await getWeatherApi(inputStr)
-        await getForecastApi(inputStr)
-
-        loadingOverlay.classList.add('hidden')
+            navSearchInput.value = ''
+            landingInput.value = ''
+            await getWeatherApi(inputStr)
+            await getForecastApi(inputStr)
+        } finally {
+            loadingOverlay.classList.add('hidden')
+        }
     }
 })
-
 
 const updateBasicInfo = (data) => {
     cityName.textContent = data.name
@@ -163,7 +148,6 @@ function getExtraInfo(data) {
     }
 }
 
-
 function displayCardsGrid(data) {
     allCard.forEach(card => card.classList.add('animate-in'))
     humidity.textContent = `${data.main.humidity} %`
@@ -180,7 +164,6 @@ function displayCardsGrid(data) {
     feelsLikeExtra.textContent = extraInfo.feelsLike
 }
 
-
 function getForecastdata(data){
     const wholeList = data.list
     let groupedDate = {}
@@ -192,10 +175,10 @@ function getForecastdata(data){
             groupedDate[date].push(item)
         }
     )
-    const forecastData = [] //refined data of 5 days Forecast.
+    const forecastData = []
     Object.keys(groupedDate).forEach(
         date => {
-            const items = groupedDate[date] //array of 8 objects
+            const items = groupedDate[date]
             const noonItem = items.find(item => item.dt_txt.includes('12:00:00'))
             const dayName = new Date(date).toLocaleDateString('en', { weekday: 'short' }).toUpperCase()
             const weather = noonItem ? noonItem.weather[0].main : items[0].weather[0].main
@@ -223,7 +206,6 @@ function getForecastdata(data){
     })
 }   
 
-// Format timestamp to readable time
 function formatTime(timestamp, timezone) {
     const localTimestamp = (timestamp + timezone) * 1000
     const date = new Date(localTimestamp)
@@ -234,7 +216,6 @@ function formatTime(timestamp, timezone) {
     return `${hours}:${minutes} ${ampm}`
 }
 
-//sun position
 function getSunPosition(sunrise, sunset, timezone) {
     const now = Date.now() / 1000
     
@@ -243,7 +224,6 @@ function getSunPosition(sunrise, sunset, timezone) {
     return ((now - sunrise) / (sunset - sunrise)) * 100
 }
 
-//position sun on arc
 function updateSolarCycle(data) {
     document.getElementById('sunrise-time').textContent = formatTime(data.sys.sunrise, data.timezone)
     document.getElementById('sunset-time').textContent = formatTime(data.sys.sunset, data.timezone)
@@ -268,8 +248,6 @@ function updateSolarCycle(data) {
     sunIcon.style.bottom = `${y + 40}px`
 }
 
-//to get weather icon.
-
 function getWeatherIcon(weather) {
     const icons = {
         'Clear': 'light_mode',
@@ -285,9 +263,6 @@ function getWeatherIcon(weather) {
     return icons[weather] || 'cloud'
 }
 
-
-
-//Geolocation : 
 async function successCallback(position){
     const lat = position.coords.latitude
     const lon = position.coords.longitude
@@ -346,8 +321,6 @@ async function getForecastFromLocation(LAT,LON){
     }
 }
 
-
-//Save to History : 
 function saveToHistory(data) {
     const exist = historyArr.some(item => item.name === data.name)
     if (exist) return 
@@ -408,8 +381,6 @@ function loadHistory(){
 }
 loadHistory()
 
-
-//changing Theme
 function toggleTheme() {
     document.documentElement.classList.toggle('dark')
     const isDark = document.documentElement.classList.contains('dark')
@@ -418,6 +389,14 @@ function toggleTheme() {
 toggleMainTheme.addEventListener('click', () => {
     toggleTheme()
 })
+
+function loadTheme() {
+    const savedTheme = localStorage.getItem('theme')
+    if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark')
+    }
+}
+loadTheme()
 
 document.querySelector('.nav-brand').addEventListener('click', () => {
     mainPage.classList.add('hidden')
